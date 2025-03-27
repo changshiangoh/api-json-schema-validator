@@ -115,9 +115,9 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
 
   return (
     <Box className="import-schema-page">
-      <Typography variant="h6">Option 1: Upload Controller files and Relevant Files</Typography>
+      <Typography variant="h6">Option 1: Upload Controller file and Relevant Files</Typography>
       <Box className="upload-container">
-        <Typography variant="body1">Controller Files</Typography>
+        <Typography variant="body1">Controller File</Typography>
         <Button variant="contained" component="label">
           Upload
           <input type="file" hidden onChange={(e) => handleFileChange2(e, setValue)} />
@@ -132,9 +132,9 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
         </Button>
         {relevantFiles && <Typography variant="body2" className="file-name">{relevantFiles[0].name}</Typography>}
       </Box>
-      <Typography variant="h6">Option 2: Upload Controller files and Schema</Typography>
+      <Typography variant="h6">Option 2: Upload Controller file and Schema</Typography>
       <Box className="upload-container">
-        <Typography variant="body1">Controller Files</Typography>
+        <Typography variant="body1">Controller File</Typography>
         <Button variant="contained" component="label">
           Upload
           <input type="file" hidden onChange={(e) => handleFileChange2(e, setValue)} />
@@ -142,7 +142,7 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
         {controllerFiles2 && <Typography variant="body2" className="file-name">{controllerFiles2[0].name}</Typography>}
       </Box>
       <Box className="upload-container">
-        <Typography variant="body1">Schema Files</Typography>
+        <Typography variant="body1">Schema</Typography>
         <Button variant="contained" component="label">
           Upload
           <input type="file" hidden onChange={(e) => handleFileChange2(e, setValue3)} />

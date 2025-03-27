@@ -2,12 +2,20 @@
   margin-top: 16px;
 }
 .validate-request-field {
-  margin-bottom: 16px;
-  width: 300px;
+  // margin-bottom: 16px;
+  display: flex;
+  width: 800px;
+  padding: 8px;
 }
+
+.text-field {
+  width: 100%;
+}
+
 .button-container {
   display: flex;
   justify-content: flex-end;
+  padding: 8px;
 }
 .back-button {
   position: absolute;

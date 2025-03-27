@@ -52,32 +52,36 @@ const ValidateRequestPage: React.FC<ValidateRequestPageProps> = ({ handleBack })
   };
   
   return (
-    <Box className="validate-request-page">
-      <div id={"input-data-1"}> 
+    <Box className="validate-request-page" >
+      <div id={"input-data-1"} className="validate-request-field"> 
         <TextField
           label="API URL"
           variant="outlined"
-          className="api-url-field"
+          className="text-field"
         />
       </div>
-      <div id={"input-data-2"}>
+      <div id={"input-data-2"} className="validate-request-field">
         <TextField
           label="JSON Input Field"
           variant="outlined"
-          className="json-input-field"
+          className="text-field"
+          multiline
+          rows={10}
         />
       </div>
+      <Box className="button-container">
+        <Button variant="contained" color="primary" onClick={validateJson} className="back-button">
+          Validate
+        </Button>
+      </Box> 
+
       <Box className="button-container">
         <Button variant="contained" color="primary" onClick={handleBack} className="back-button">
           Back
         </Button>
       </Box>
 
-      <Box className="button-container">
-        <Button variant="contained" color="primary" onClick={validateJson} className="back-button">
-          Validate
-        </Button>
-      </Box>  
+    
       {result && <p>{result}</p>}
     </Box>
   );
