@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Box, TextField } from '@mui/material';
 import './ValidateRequestPage.scss';
 import axios from 'axios';
+import useFileStore from '../zustand/FileStore';
 
 interface ValidateRequestPageProps {
   handleBack: () => void;
@@ -9,8 +10,10 @@ interface ValidateRequestPageProps {
 
 const ValidateRequestPage: React.FC<ValidateRequestPageProps> = ({ handleBack }) => {
   const [result, setResult] = useState('');
+  const { schema } = useFileStore();
 
-  const schema = {
+
+  const schema2 = {
     "type": "object",
     "properties": {
         "name": {"type": "string"},
@@ -25,8 +28,9 @@ const ValidateRequestPage: React.FC<ValidateRequestPageProps> = ({ handleBack })
   }
 
   const validateJson = async () => {
-      const element = document.getElementById("input-data")?.querySelector('input') as HTMLInputElement;
-      const inputData = element.value || "";
+      const element1 = document.getElementById("input-data-1")?.querySelector('input') as HTMLInputElement;
+      const element2 = document.getElementById("input-data-2")?.querySelector('input') as HTMLInputElement;
+      const inputData = element2.value || "";
       let inputJson;
       try {
         inputJson = JSON.parse(inputData);
@@ -42,17 +46,25 @@ const ValidateRequestPage: React.FC<ValidateRequestPageProps> = ({ handleBack })
         setResult(response.data.message || response.data.detail);
       }
     } catch (error: any) {
+      console.log(">>>>>>>>", error)
       setResult(error.response.data.detail || 'An error occurred');
     }
   };
   
   return (
     <Box className="validate-request-page">
-      <div id={"input-data"}>
+      <div id={"input-data-1"}> 
         <TextField
-          label="Validate Request Field"
+          label="API URL"
           variant="outlined"
-          className="validate-request-field"
+          className="api-url-field"
+        />
+      </div>
+      <div id={"input-data-2"}>
+        <TextField
+          label="JSON Input Field"
+          variant="outlined"
+          className="json-input-field"
         />
       </div>
       <Box className="button-container">
