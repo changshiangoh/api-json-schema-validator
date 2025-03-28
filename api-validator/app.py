@@ -36,9 +36,13 @@ class GenerateSchemaRequest(BaseModel):
 
 @app.post("/generate-schema/")
 async def generate_schema(request: GenerateSchemaRequest):
-    object_name = extract_request_body_object(request.controller_content, request.url, request.request_type)
-    json_schema = build_json_schema(request.class_content, object_name)
-    return json_schema
+    try:
+        object_name = extract_request_body_object(request.controller_content, request.url, request.request_type)
+        json_schema = build_json_schema(request.class_content, object_name)
+        return json_schema
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
 def extract_request_body_object(controller_content, url, request_type):
     # Extract the path from the URL
     url_path = re.sub(r'^https?://[^/]+', '', url)
@@ -46,12 +50,17 @@ def extract_request_body_object(controller_content, url, request_type):
     # Extract controller mapping
     controller_pattern = r'@RequestMapping\("([^"]+)"\)\s+public\s+class\s+\w+'
     controller_match = re.search(controller_pattern, controller_content)
-    controller_mapping = controller_match.group(1) if controller_match else ''
+    if not controller_match:
+        raise ValueError("Method not found in controller.")
+    
+    controller_mapping = controller_match.group(1)
+    
     # Split the URL by the controller mapping
     if controller_mapping and controller_mapping in url_path:
         remaining_url = url_path.split(controller_mapping)[-1]
     else:
-        remaining_url = url_path
+        raise ValueError("Method not found in controller.")
+    
     # Extract method mappings based on request type
     method_pattern = rf'@({request_type}Mapping)\("([^"]+)"\)\s+public\s+\w+\s+\w+\((?:@RequestBody\s+(\w+))?'
     method_matches = re.findall(method_pattern, controller_content)
@@ -59,7 +68,10 @@ def extract_request_body_object(controller_content, url, request_type):
     for method, endpoint, request_body in method_matches:
         if remaining_url.startswith(endpoint):
             return request_body
-    return None
+    
+    # Raise an exception if no match is found
+    raise ValueError("No matching request found for the given URL and request type.")
+
 def build_json_schema(java_content, object_name):
     tree = javalang.parse.parse(java_content)
     schema = {
@@ -116,6 +128,47 @@ def build_json_schema(java_content, object_name):
     
     return schema
  
+class CheckUrlRequest(BaseModel):
+    controller_content: str
+    url: str
+    request_type: str
+
+@app.post("/check-url/")
+async def check_url_endpoint(request: CheckUrlRequest):
+    try:
+        result = check_url(request.controller_content, request.url, request.request_type)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+def check_url(controller_content, url, request_type):
+    # Extract the path from the URL
+    url_path = re.sub(r'^https?://[^/]+', '', url)
+    
+    # Extract controller mapping
+    controller_pattern = r'@RequestMapping\("([^"]+)"\)\s+public\s+class\s+\w+'
+    controller_match = re.search(controller_pattern, controller_content)
+    if not controller_match:
+        raise ValueError("Method not found in controller.")
+    
+    controller_mapping = controller_match.group(1)
+    
+    # Split the URL by the controller mapping
+    if controller_mapping and controller_mapping in url_path:
+        remaining_url = url_path.split(controller_mapping)[-1]
+    else:
+        raise ValueError("Method not found in controller.")
+    
+    # Extract method mappings based on request type
+    method_pattern = rf'@({request_type}Mapping)\("([^"]+)"\)\s+public\s+\w+\s+\w+\((?:@RequestBody\s+(\w+))?'
+    method_matches = re.findall(method_pattern, controller_content)
+    
+    for method, endpoint, request_body in method_matches:
+        if remaining_url.startswith(endpoint):
+            return {"message": "Mapping found."}
+    
+    # Raise an exception if no match is found
+    raise ValueError("No matching request found for the given URL and request type.")
  
 
 if __name__ == "__main__":

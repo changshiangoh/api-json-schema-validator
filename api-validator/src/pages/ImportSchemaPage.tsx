@@ -10,6 +10,7 @@ interface ImportSchemaPageProps {
 
 const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
   const [selected, setSelected] = useState('');
+  const [error, setError] = useState('');
   
   const { controllerFileName, relevantObjectsName, schemaFileName, schemaFile, controllerFile, relevantObjects, setControllerFile, setRelevantObjects, setSchemaFile, setControllerFileName, setRelevantObjectsName, setSchemaFileName } = useFileStore();
 
@@ -37,6 +38,7 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
 
   const setSchema = (fileList: FileList | null) => {
     setRelevantObjects("");
+    setRelevantObjectsName("");
     const file = fileList?.[0];
 
     if (file) {
@@ -58,6 +60,7 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
 
   const setRelevantObject = (fileList: FileList | null) => {
     setSchemaFile("")
+    setSchemaFileName("")
       if (fileList) {
           let mergedContent = '';
           let fileName = '';
@@ -83,28 +86,60 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
       }
   };
 
+  const valid = (url: HTMLInputElement) => {
+    const methodTypeValid = selected !== "";
+    const urlValid = url.value !== "";
+    const controllerValid = controllerFile !== "";
+    const fileValid = relevantObjects !== "" || schemaFile !== "";
+    const errorInput = !methodTypeValid ? "method type" : !urlValid ? "api url" : !controllerValid ? "controller" : !fileValid ? "relevant files or schema" : ""; 
+    return (
+      {
+        valid: methodTypeValid && urlValid && controllerValid && fileValid,
+        errorMessage: errorInput !== "" ? `Please provide ${errorInput}.` : ""
+      }
+    )
+  }
+
   const onNextClicked = async () => {
     const element1 = document.getElementById("input-data-1")?.querySelector('input') as HTMLInputElement;
-    if (relevantObjects !== "") {
-      try {
-        const response = await axios.post('http://localhost:8000/generate-schema/', {
-          controller_content: controllerFile,
-          class_content: relevantObjects,
-          url: element1.value,
-          request_type: selected
-        });
-        setSchemaFile(response.data);
-        setSchemaFileName("Schema.json")
-        
-      } catch (error) {
-        console.error('Error generating schema:', error);
+    const checkIfValid = valid(element1);
+    if (checkIfValid.valid) {
+      if (relevantObjects !== "") {
+        try {
+          const response = await axios.post('http://localhost:8000/generate-schema/', {
+            controller_content: controllerFile,
+            class_content: relevantObjects,
+            url: element1.value,
+            request_type: selected
+          });
+          setSchemaFile(response.data);
+          setSchemaFileName("Schema.json")
+          setError('');
+          handleNext();
+        } catch (error: any) {
+          setError(error.response.data.detail);
+        }
+      } else {
+        try {
+          await axios.post('http://localhost:8000/check-url/', {
+            controller_content: controllerFile,
+            url: element1.value,
+            request_type: selected
+          });
+          setError('');
+          handleNext();
+        } catch (error: any) {
+          setError(error.response.data.detail);
+        }  
       }
+    } else {
+      setError(checkIfValid.errorMessage);
     }
-    handleNext();
   };
 
   const handleChange = (event: any) => {
     setSchemaFile("")
+    setSchemaFileName("")
     setSelected(event.target.value);
     console.log('Selected option:', event.target.value);
   };
@@ -112,6 +147,12 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
 
   return (
     <Box className="import-schema-page">
+      {error && (
+        <Box className={`result-box`}>
+          <p>{error}</p>
+        </Box>
+      )}
+
       <div className="validate-request-field"> 
         <Select
             className='text-field'
@@ -136,34 +177,25 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
         />
       </div>
 
-      <Typography variant="h6">Option 1: Upload Controller file and Relevant Files</Typography>
       <Box className="upload-container">
-        <Typography variant="body1">Controller File</Typography>
+        <Typography variant="h6">Controller File</Typography>
         <Button variant="contained" component="label">
           Upload
           <input type="file" hidden onChange={(e) => handleFileChange(e, setController)} />
         </Button>
         {controllerFileName && <Typography variant="body2" className="file-name">{controllerFileName}</Typography>}
       </Box>
+
       <Box className="upload-container">
-        <Typography variant="body1">Relevant Files</Typography>
-        <Button variant="contained" component="label">
+          <Typography variant="h6">Option 1: Upload Relevant Files</Typography>        <Button variant="contained" component="label">
           Upload
           <input type="file" hidden multiple onChange={(e) => handleFileChange(e, setRelevantObject)} />
         </Button>
         {relevantObjectsName && <Typography variant="body2" className="file-name">{relevantObjectsName}</Typography>}
       </Box>
-      <Typography variant="h6">Option 2: Upload Controller file and Schema</Typography>
+      
       <Box className="upload-container">
-        <Typography variant="body1">Controller File</Typography>
-        <Button variant="contained" component="label">
-          Upload
-          <input type="file" hidden onChange={(e) => handleFileChange(e, setController)} />
-        </Button>
-        {controllerFileName && <Typography variant="body2" className="file-name">{controllerFileName}</Typography>}
-      </Box>
-      <Box className="upload-container">
-        <Typography variant="body1">Schema</Typography>
+        <Typography variant="h6">Option 2: Upload Schema</Typography>
         <Button variant="contained" component="label">
           Upload
           <input type="file" hidden onChange={(e) => handleFileChange(e, setSchema)} />
