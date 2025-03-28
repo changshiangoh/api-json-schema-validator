@@ -114,6 +114,7 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
           });
           setSchemaFile(response.data);
           setSchemaFileName("Schema.json")
+          console.log(response.data)
           setError('');
           handleNext();
         } catch (error: any) {

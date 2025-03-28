@@ -1,8 +1,27 @@
 {
     "type": "object",
     "properties": {
-        "name": {"type": "string"},
-        "age": {"type": "integer"}
+        "name": {
+            "type": "string"
+        },
+        "address": {
+            "type": "object",
+            "properties": {
+                "street": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "street",
+                "city"
+            ]
+        }
     },
-    "required": ["name", "age"]
-  }
+    "required": [
+        "name",
+        "address"
+    ]
+}
