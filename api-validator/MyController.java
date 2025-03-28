@@ -8,4 +8,14 @@ public class MyController {
     public void submitData(@RequestBody MyRequest request) {
         // Handle the request
     }
+
+    @PutMapping("/commit")
+    public void commitData(@RequestBody String request) {
+        // Handle the request
+    }
+
+    @PostMapping("/add")
+    public void commitData(@RequestBody MyRequest request) {
+        // Handle the request
+    }
 }

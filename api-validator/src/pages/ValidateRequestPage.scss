@@ -1,8 +1,8 @@
 .validate-request-page {
   margin-top: 16px;
 }
+
 .validate-request-field {
-  // margin-bottom: 16px;
   display: flex;
   width: 800px;
   padding: 8px;
@@ -22,4 +22,21 @@
   top: 16px;
   right: 16px;
 }
+
+.result-box {
+    width: 800px;
+    padding: 8px;
+    // padding: 10px;
+    margin-bottom: 10px;
+    color: white;
+    border-radius: 5px;
+
+    &.valid {
+      background-color: green;
+    }
+
+    &.invalid {
+      background-color: red;
+    }
+  }
  

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Box, Typography } from '@mui/material';
+import { Button, Box, Typography, Select, MenuItem, TextField } from '@mui/material';
 import './ImportSchemaPage.scss';
 import useFileStore from '../zustand/FileStore';
 import axios from 'axios';
@@ -9,36 +9,25 @@ interface ImportSchemaPageProps {
 }
 
 const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
-  const [controllerFiles1, setControllerFiles1] = useState<FileList | null>(null);
-  const [controllerFiles2, setControllerFiles2] = useState<FileList | null>(null);
-  const [relevantFiles, setRelevantFiles] = useState<FileList | null>(null);
-  const [schemaFiles, setSchemaFiles] = useState<FileList | null>(null);
+  const [selected, setSelected] = useState('');
+  
+  const { controllerFileName, relevantObjectsName, schemaFileName, schemaFile, controllerFile, relevantObjects, setControllerFile, setRelevantObjects, setSchemaFile, setControllerFileName, setRelevantObjectsName, setSchemaFileName } = useFileStore();
 
-  const { schema, controllerFile, relevantObjects, setControllerFile, setRelevantObjects, setSchema } = useFileStore();
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, setFile: React.Dispatch<React.SetStateAction<FileList | null>>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, setFile: (file : FileList | null) => void) => {
     if (event.target.files && event.target.files.length > 0) {
       setFile(event.target.files);
     }
   };
 
-    const handleFileChange2 = (event: React.ChangeEvent<HTMLInputElement>, setFile: (file : FileList | null) => void) => {
-    if (event.target.files && event.target.files.length > 0) {
-      setFile(event.target.files);
-    }
-  };
-
-  const setValue = (fileList: FileList | null) => {
+  const setController = (fileList: FileList | null) => {
     const file = fileList?.[0];
 
     if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
             const content = event.target?.result as string;
-            console.log(content); // This is where you get the file content
-
-            // Save the content to Zustand store
             setControllerFile(content);
+            setControllerFileName(file.name);
         };
         reader.readAsText(file);
     } else {
@@ -46,18 +35,17 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
     }
   }
 
-  const setValue3 = (fileList: FileList | null) => {
+  const setSchema = (fileList: FileList | null) => {
+    setRelevantObjects("");
     const file = fileList?.[0];
 
     if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
             const content = event.target?.result as string;
-            console.log(content); // This is where you get the file content
-
-            // Save the content to Zustand store
             try {
-              setSchema(JSON.parse(content));
+              setSchemaFile(JSON.parse(content));
+              setSchemaFileName(file.name);
             } catch {
               console.log("schema not in valid JSON format")
             }     
@@ -68,9 +56,11 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
     }
   }
 
-  const setValue2 = (fileList: FileList | null) => {
+  const setRelevantObject = (fileList: FileList | null) => {
+    setSchemaFile("")
       if (fileList) {
           let mergedContent = '';
+          let fileName = '';
           let filesProcessed = 0;
 
           Array.from(fileList).forEach((file, index) => {
@@ -78,14 +68,12 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
               reader.onload = function(event) {
                   const content = event.target?.result as string;
                   mergedContent += content + (index < fileList.length - 1 ? '\n' : '');
+                  fileName += file.name + ",";
                   filesProcessed++;
 
-                  // Check if all files have been processed
                   if (filesProcessed === fileList.length) {
-                      console.log(mergedContent); // This is where you get the merged file content
-
-                      // Save the merged content to Zustand store
                       setRelevantObjects(mergedContent);
+                      setRelevantObjectsName(fileName.slice(0, fileName.length-1));
                   }
               };
               reader.readAsText(file);
@@ -95,15 +83,18 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
       }
   };
 
-  const handleNext2 = async () => {
-    if (schema === "") {
+  const onNextClicked = async () => {
+    const element1 = document.getElementById("input-data-1")?.querySelector('input') as HTMLInputElement;
+    if (relevantObjects !== "") {
       try {
         const response = await axios.post('http://localhost:8000/generate-schema/', {
           controller_content: controllerFile,
           class_content: relevantObjects,
+          url: element1.value,
+          request_type: selected
         });
-        console.log(">>>>hello", response.data);
-        setSchema(response.data);
+        setSchemaFile(response.data);
+        setSchemaFileName("Schema.json")
         
       } catch (error) {
         console.error('Error generating schema:', error);
@@ -112,45 +103,75 @@ const ImportSchemaPage: React.FC<ImportSchemaPageProps> = ({ handleNext }) => {
     handleNext();
   };
 
+  const handleChange = (event: any) => {
+    setSchemaFile("")
+    setSelected(event.target.value);
+    console.log('Selected option:', event.target.value);
+  };
+
 
   return (
     <Box className="import-schema-page">
+      <div className="validate-request-field"> 
+        <Select
+            className='text-field'
+            value={selected}
+            onChange={handleChange}
+            displayEmpty
+        >
+            <MenuItem value="" disabled>
+                <em>Select method type</em>
+            </MenuItem>
+            <MenuItem value="Post">Post</MenuItem>
+            <MenuItem value="Put">Put</MenuItem>
+            <MenuItem value="Delete">Delete</MenuItem>
+        </Select>
+      </div>
+        
+      <div id={"input-data-1"} className="validate-request-field"> 
+        <TextField
+          label="API URL"
+          variant="outlined"
+          className="text-field"
+        />
+      </div>
+
       <Typography variant="h6">Option 1: Upload Controller file and Relevant Files</Typography>
       <Box className="upload-container">
         <Typography variant="body1">Controller File</Typography>
         <Button variant="contained" component="label">
           Upload
-          <input type="file" hidden onChange={(e) => handleFileChange2(e, setValue)} />
+          <input type="file" hidden onChange={(e) => handleFileChange(e, setController)} />
         </Button>
-        {controllerFiles1 && <Typography variant="body2" className="file-name">{controllerFiles1[0].name}</Typography>}
+        {controllerFileName && <Typography variant="body2" className="file-name">{controllerFileName}</Typography>}
       </Box>
       <Box className="upload-container">
         <Typography variant="body1">Relevant Files</Typography>
         <Button variant="contained" component="label">
           Upload
-          <input type="file" hidden multiple onChange={(e) => handleFileChange2(e, setValue2)} />
+          <input type="file" hidden multiple onChange={(e) => handleFileChange(e, setRelevantObject)} />
         </Button>
-        {relevantFiles && <Typography variant="body2" className="file-name">{relevantFiles[0].name}</Typography>}
+        {relevantObjectsName && <Typography variant="body2" className="file-name">{relevantObjectsName}</Typography>}
       </Box>
       <Typography variant="h6">Option 2: Upload Controller file and Schema</Typography>
       <Box className="upload-container">
         <Typography variant="body1">Controller File</Typography>
         <Button variant="contained" component="label">
           Upload
-          <input type="file" hidden onChange={(e) => handleFileChange2(e, setValue)} />
+          <input type="file" hidden onChange={(e) => handleFileChange(e, setController)} />
         </Button>
-        {controllerFiles2 && <Typography variant="body2" className="file-name">{controllerFiles2[0].name}</Typography>}
+        {controllerFileName && <Typography variant="body2" className="file-name">{controllerFileName}</Typography>}
       </Box>
       <Box className="upload-container">
         <Typography variant="body1">Schema</Typography>
         <Button variant="contained" component="label">
           Upload
-          <input type="file" hidden onChange={(e) => handleFileChange2(e, setValue3)} />
+          <input type="file" hidden onChange={(e) => handleFileChange(e, setSchema)} />
         </Button>
-        {schemaFiles && <Typography variant="body2" className="file-name">{schemaFiles[0].name}</Typography>}
+        {schemaFileName && <Typography variant="body2" className="file-name">{schemaFileName}</Typography>}
       </Box>
       <Box className="button-container">
-        <Button variant="contained" color="primary" onClick={handleNext2}>
+        <Button variant="contained" color="primary" onClick={onNextClicked}>
           Next
         </Button>
       </Box>

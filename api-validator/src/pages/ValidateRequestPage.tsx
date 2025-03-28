@@ -10,27 +10,11 @@ interface ValidateRequestPageProps {
 
 const ValidateRequestPage: React.FC<ValidateRequestPageProps> = ({ handleBack }) => {
   const [result, setResult] = useState('');
-  const { schema } = useFileStore();
-
-
-  const schema2 = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "age": {"type": "integer"}
-    },
-    "required": ["name", "age"]
-  }
-
-  const data = {
-      "name": "John Doe",
-      "age": 30
-  }
+  const { schemaFile } = useFileStore();
 
   const validateJson = async () => {
-      const element1 = document.getElementById("input-data-1")?.querySelector('input') as HTMLInputElement;
-      const element2 = document.getElementById("input-data-2")?.querySelector('input') as HTMLInputElement;
-      const inputData = element2.value || "";
+      const element = document.getElementById("input-data")?.querySelector('textarea') as HTMLTextAreaElement;      
+      const inputData = element.value || "";
       let inputJson;
       try {
         inputJson = JSON.parse(inputData);
@@ -40,8 +24,9 @@ const ValidateRequestPage: React.FC<ValidateRequestPageProps> = ({ handleBack })
     try {
       if (inputJson) {
         const response = await axios.post('http://localhost:8000/validate/', {
-          schemaData: { schemaData: schema },
+          schemaData: { schemaData: schemaFile },
           inputData: { inputData: inputJson },
+
         });
         setResult(response.data.message || response.data.detail);
       }
@@ -53,14 +38,13 @@ const ValidateRequestPage: React.FC<ValidateRequestPageProps> = ({ handleBack })
   
   return (
     <Box className="validate-request-page" >
-      <div id={"input-data-1"} className="validate-request-field"> 
-        <TextField
-          label="API URL"
-          variant="outlined"
-          className="text-field"
-        />
-      </div>
-      <div id={"input-data-2"} className="validate-request-field">
+      {result && (
+        <Box className={`result-box ${result.startsWith("Data is valid") ? 'valid' : 'invalid'}`}>
+          <p>{result}</p>
+        </Box>
+      )}
+
+      <div id={"input-data"} className="validate-request-field">
         <TextField
           label="JSON Input Field"
           variant="outlined"
@@ -80,9 +64,6 @@ const ValidateRequestPage: React.FC<ValidateRequestPageProps> = ({ handleBack })
           Back
         </Button>
       </Box>
-
-    
-      {result && <p>{result}</p>}
     </Box>
   );
 };

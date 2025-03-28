@@ -31,17 +31,34 @@ async def validate_data(schemaData: SchemaData, inputData: InputData):
 class GenerateSchemaRequest(BaseModel):
     controller_content: str
     class_content: str
+    url: str
+    request_type: str
 
 @app.post("/generate-schema/")
 async def generate_schema(request: GenerateSchemaRequest):
-    object_name = extract_request_body_object(request.controller_content)
+    object_name = extract_request_body_object(request.controller_content, request.url, request.request_type)
     json_schema = build_json_schema(request.class_content, object_name)
     return json_schema
-def extract_request_body_object(controller_content):
-    pattern = r'@RequestBody\s+(\w+)'
-    match = re.search(pattern, controller_content)
-    if match:
-        return match.group(1)
+def extract_request_body_object(controller_content, url, request_type):
+    # Extract the path from the URL
+    url_path = re.sub(r'^https?://[^/]+', '', url)
+    
+    # Extract controller mapping
+    controller_pattern = r'@RequestMapping\("([^"]+)"\)\s+public\s+class\s+\w+'
+    controller_match = re.search(controller_pattern, controller_content)
+    controller_mapping = controller_match.group(1) if controller_match else ''
+    # Split the URL by the controller mapping
+    if controller_mapping and controller_mapping in url_path:
+        remaining_url = url_path.split(controller_mapping)[-1]
+    else:
+        remaining_url = url_path
+    # Extract method mappings based on request type
+    method_pattern = rf'@({request_type}Mapping)\("([^"]+)"\)\s+public\s+\w+\s+\w+\((?:@RequestBody\s+(\w+))?'
+    method_matches = re.findall(method_pattern, controller_content)
+    
+    for method, endpoint, request_body in method_matches:
+        if remaining_url.startswith(endpoint):
+            return request_body
     return None
 def build_json_schema(java_content, object_name):
     tree = javalang.parse.parse(java_content)
@@ -88,8 +105,17 @@ def build_json_schema(java_content, object_name):
     
     if object_name in class_names:
         schema = parse_class(class_nodes[object_name])
+    else:
+        schema = {
+            "type": "object",
+            "properties": {
+                "data": {"type": map_java_type_to_json_type(object_name)}
+            },
+            "required": ["data"]
+        }
     
     return schema
+ 
  
 
 if __name__ == "__main__":
